@@ -55,17 +55,21 @@ def find_task_files(root_dir):
                 tasks_md_files.append(os.path.join(dirpath, filename))
     return tasks_md_files
 
-def get_tasks(filename, finished=False):
+def get_tasks(filename, finished=False, category_task=False):
     """Retrieve tasks from a file, filtering by finished status."""
     tasks = []
     x = get_x(finished)
     try:
         with open(filename, "r") as file:
             lines = file.readlines()
+            start_tasks = False
             for line in lines:
-                if line.startswith(f"- [{x}] "):
+                if "Tasks" in line:
+                    start_tasks = True
+                if start_tasks and line.startswith(f"- [{x}] "):
                     task = line.split(f"- [{x}] ")[1]
-                    tasks.append(task.strip())
+                    if category_task and "(" in task or not category_task:
+                        tasks.append(task.strip())
     except IOError as e:
         print(f"Failed to read {filename}: {e}")
     return tasks
@@ -89,7 +93,7 @@ def get_unfinished_tasks():
 def get_finished_tasks():
     """Retrieve finished tasks from yesterday's journal."""
     filename = get_journal_filename(yesterday_date)
-    return get_tasks(filename, finished=True)
+    return get_tasks(filename, finished=True, category_task=True)
 
 def get_tasks_filename(root_dir, category):
     """Construct the filename for tasks within a specific category."""
