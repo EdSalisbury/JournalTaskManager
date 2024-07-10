@@ -187,7 +187,6 @@ def main():
         task_output += task
 
     output = template.replace("{TASKS}", task_output)
-    print(output)
     write_journal_entry(output)
 
 if __name__ == "__main__":
