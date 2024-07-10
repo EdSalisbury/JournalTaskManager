@@ -3,6 +3,7 @@
 import calendar
 import datetime
 import os
+import re
 import sys
 
 script_path = os.path.realpath(sys.argv[0])
@@ -57,22 +58,41 @@ def find_task_files(root_dir):
 
 def get_tasks(filename, finished=False, category_task=False):
     """Retrieve tasks from a file, filtering by finished status."""
-    tasks = []
     x = get_x(finished)
+
+    scheduled_tasks = []
+    unscheduled_tasks = []
+
     try:
         with open(filename, "r") as file:
             lines = file.readlines()
             start_tasks = False
+            scheduled = False
+
             for line in lines:
-                if "Tasks" in line:
+                result = re.search(r"(\d\d\d\d-\d\d-\d\d)", line)
+                if result:
+                    date_string = result.group(1)
+                    date_object = datetime.datetime.strptime(date_string, "%Y-%m-%d")
+                    if date_object.date() <= current_date.date():
+                        start_tasks = True
+                        scheduled = True
+                    else:
+                        start_tasks = False
+                elif "Tasks" in line:
                     start_tasks = True
+                    scheduled = False
+                
                 if start_tasks and line.startswith(f"- [{x}] "):
                     task = line.split(f"- [{x}] ")[1]
                     if category_task and "(" in task or not category_task:
-                        tasks.append(task.strip())
+                        if scheduled:
+                            scheduled_tasks.append(task.strip())
+                        else:
+                            unscheduled_tasks.append(task.strip())
     except IOError as e:
         print(f"Failed to read {filename}: {e}")
-    return tasks
+    return scheduled_tasks + unscheduled_tasks
 
 def get_x(finished=False):
     """Return the appropriate checkbox mark based on the finished status."""
@@ -167,6 +187,7 @@ def main():
         task_output += task
 
     output = template.replace("{TASKS}", task_output)
+    print(output)
     write_journal_entry(output)
 
 if __name__ == "__main__":
